@@ -1,0 +1,4 @@
+name = Callie
+description = callie
+configure = admin/config/content/callie/settings
+core = 7.x

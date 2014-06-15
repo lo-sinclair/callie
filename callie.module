@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Module file for mappy.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function callie_menu() {
+  // Settings page.
+  $items['admin/config/content/callie/settings'] = array(
+    'title' => 'Callie settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('callie_settings'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'callie.admin.inc',
+    'file path' => drupal_get_path('module', 'callie'),
+  );
+
+  return $items;
+}
+
