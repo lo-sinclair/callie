@@ -2,23 +2,532 @@
 
 /**
  * @file
- * Module file for mappy.
+ * Module file for callie.
  */
+
+
+/**
+ * Implements hook_entity_info().
+ *
+ * This is the fundamental description of the entity.
+ *
+ * It provides a single entity with a single bundle and without revision
+ * support.
+ */
+function callie_entity_info() {
+  $info['callie_form'] = array(
+    'label' => t('Callie Form'),
+    'controller class' => 'CallieFormController',
+    'base table' => 'callie_form',
+    'uri callback' => 'callie_form_uri',
+    'fieldable' => TRUE,
+
+    // entity_keys tells the controller what database fields are used for key
+    // functions. It is not required if we don't have bundles or revisions.
+    // Here we do not support a revision, so that entity key is omitted.
+    'entity keys' => array(
+      'id' => 'cfid',
+    ),
+    /*
+    'bundle keys' => array(
+      'bundle' => 'bundle_type',
+    ),*/
+
+    'static cache' => FALSE,
+    'bundles' => array(
+      'callie_bundle' => array(
+        'label' => 'Callie bundle',
+        'admin' => array(
+          'path' => 'admin/structure/callie_form/manage',
+          'access arguments' => array('administer callie_form entities'),
+        ),
+      ),
+    ),
+    // View modes allow entities to be displayed differently based on context.
+    // As a demonstration we'll support "Tweaky", but we could have and support
+    // multiple display modes.
+    'view modes' => array(
+      'tweaky' => array(
+        'label' => t('Tweaky'),
+        'custom settings' => FALSE,
+      ),
+    ),
+  );
+
+  return $info;
+}
+
+
+
+/**
+ * Fetch a callie_form object.
+ */
+function callie_form_load($cfid = NULL, $reset = FALSE) {
+  $cfids = (isset($cfid) ? array($cfid) : array());
+  $callie_form = callie_form_load_multiple($cfids, array(), $reset);
+  return $callie_form ? reset($callie_form) : FALSE;
+}
+
+
+
+/**
+ * Loads multiple callie_form entities.
+ */
+function callie_form_load_multiple($cfids = FALSE, $conditions = array(), $reset = FALSE) {
+  return entity_load('callie_form', $cfids, $conditions, $reset);
+}
+
+
+
+/**
+ * Implements the uri callback.
+ */
+function callie_form_uri($callie_form) {
+  return array(
+    'path' => 'callie/callie_form/' . $callie_form->cfid,
+  );
+}
+
+
 
 /**
  * Implements hook_menu().
  */
 function callie_menu() {
-  // Settings page.
-  $items['admin/config/content/callie/settings'] = array(
-    'title' => 'Callie settings',
+  $items['callie'] = array(
+    'title' => 'Callie',
+    'page callback' => 'callie_info_page',
+    'access arguments' => array('view any callie_form entity'),
+  );
+
+  // This provides a place for Field API to hang its own
+  // interface and has to be the same as what was defined
+  // in basic_entity_info() above.
+  $items['admin/structure/callie_form/manage'] = array(
+    'title' => 'Administer callie_form entity type',
+    'page callback' => 'callie_form_list_entities',
+    'access arguments' => array('administer callie_form entities'),
+  );
+
+  $items['admin/structure/callie_form/manage/add'] = array(
+    'title' => 'Add an callie form Entity',
+    'page callback' => 'callie_form_add',
+    'access arguments' => array('create callie_form entities'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/structure/callie_form/manage/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['callie/callie_form/%callie_form'] = array(
+    'title callback' => 'callie_form_title',
+    'title arguments' => array(2),
+    'page callback' => 'callie_form_view',
+    'page arguments' => array(2),
+    'access arguments' => array('view any callie_form entity'),
+  );
+
+  $items['callie/callie_form/%callie_form/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  $items['callie/callie_form/%callie_form/edit'] = array(
+    'title' => 'Edit',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('callie_settings'),
-    'access arguments' => array('administer site configuration'),
-    'file' => 'callie.admin.inc',
-    'file path' => drupal_get_path('module', 'callie'),
+    'page arguments' => array('callie_form_form', 2),
+    'access arguments' => array('edit any callie_form entity'),
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['callie/callie_form/add'] = array(
+    'title' => 'Add an Entity Example Basic Entity',
+    'page callback' => 'callie_form_add',
+    'access arguments' => array('create callie_form entities'),
   );
 
   return $items;
 }
 
+
+
+/**
+ * Basic information for the page.
+ */
+function callie_info_page() {
+  $content['preface'] = array(
+    '#type' => 'item',
+    '#markup' => t('The callie provides a callie form.'),
+  );
+  if (user_access('administer callie_form entities')) {
+    $content['preface']['#markup'] = t('You can administer these and add fields and change the view !link.',
+      array('!link' => l(t('here'), 'admin/structure/callie_form/manage'))
+    );
+  }
+  $content['table'] = callie_form_list_entities();
+
+  return $content;
+}
+
+
+
+/**
+ * Implements hook_permission().
+ */
+function callie_permission() {
+  $permissions = array(
+    'administer callie_form entities' => array(
+      'title' => t('Administer callie_form entities'),
+    ),
+    'view any callie_form entity' => array(
+      'title' => t('View any callie_form entity'),
+    ),
+    'edit any callie_form entity' => array(
+      'title' => t('Edit any callie_form entity'),
+    ),
+    'create callie_form entities' => array(
+      'title' => t('Create callie_form Entities'),
+    ),
+  );
+  return $permissions;
+}
+
+
+
+function callie_form_list_entities() {
+  $content = array();
+  // Load all of our entities.
+  $entities = callie_form_load_multiple();
+  if (!empty($entities)) {
+    foreach ($entities as $entity) {
+      // Create tabular rows for our entities.
+      $rows[] = array(
+        'data' => array(
+          'id' => $entity->cfid,
+          'title' => l($entity->title, 'callie/callie_form/' . $entity->cfid),
+          'mode' => $entity->mode,
+        ),
+      );
+    }
+    $content['entity_table'] = array(
+      '#theme' => 'table',
+      '#rows' => $rows,
+      '#header' => array(t('ID'), t('Item Title'), t('Type')),
+    );
+  }
+  else {
+    $content[] = array(
+      '#type' => 'item',
+      '#markup' => t('No callie_form entities currently exist.'),
+    );
+  }
+  return $content;
+}
+
+
+/**
+ * Callback for a page title when this entity is displayed.
+ */
+function callie_form_title($entity) {
+  return t('Callie Form: @title', array('@title' => $entity->title));
+}
+
+
+
+function callie_form_view($entity, $view_mode = 'tweaky') {
+  $entity_type = 'callie_form';
+  // Start setting up the content.
+  $entity->content = array(
+    '#view_mode' => $view_mode,
+  );
+
+  field_attach_prepare_view($entity_type, array($entity->cfid => $entity),
+    $view_mode);
+  
+  entity_prepare_view($entity_type, array($entity->cfid => $entity));
+  
+  $entity->content += field_attach_view($entity_type, $entity, $view_mode);
+
+  $entity->content['title'] = array(
+    '#type' => 'item',
+    '#title' => t('Item Title'),
+    '#markup' => $entity->title,
+  );
+
+  $entity->content['mode'] = array(
+    '#type' => 'item',
+    '#title' => t('Item Mode'),
+    '#markup' => $entity->mode,
+  );
+
+  global $language;
+  $langcode = $language->language;
+  
+  module_invoke_all('entity_view', $entity, $entity_type, $view_mode,
+    $langcode);
+ 
+  drupal_alter(array('callie_form_view', 'entity_view'),
+    $entity->content, $entity_type);
+
+  // And finally return the content.
+  return $entity->content;
+}
+
+
+
+function callie_field_extra_fields() {
+  $form_elements['title'] = array(
+    'label' => t('Item Title'),
+    'description' => t('Item Title (an extra form field)'),
+    'weight' => -5,
+  );
+  $display_elements['title'] = array(
+    'label' => t('Item Title'),
+    'description' => t('Just like title, but trying to point out that it is a separate property'),
+    'weight' => 0,
+  );
+
+  $extra_fields['callie_form']['callie_bundle']['form'] = $form_elements;
+  $extra_fields['callie_form']['callie_bundle']['display'] = $display_elements;
+
+  return $extra_fields;
+}
+
+
+
+/**
+ * Provides a wrapper on the edit form to add a new entity.
+ */
+function callie_form_add() {
+  $entity = entity_get_controller('callie_form')->create();
+  return drupal_get_form('callie_form_form', $entity);
+}
+
+
+
+
+function callie_form_form($form, &$form_state, $entity) {
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#required' => TRUE,
+    '#default_value' => $entity->title,
+  );
+  $form['mode'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Mode'),
+    '#required' => TRUE,
+    '#default_value' => $entity->mode,
+  );
+  $form['callie_form'] = array(
+    '#type' => 'value',
+    '#value' => $entity,
+  );
+
+  field_attach_form('callie_form', $entity, $form, $form_state);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#weight' => 100,
+  );
+  $form['delete'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete'),
+    '#submit' => array('callie_form_edit_delete'),
+    '#weight' => 200,
+  );
+
+  return $form;
+}
+
+
+
+
+function callie_form_form_validate($form, &$form_state) {
+  field_attach_form_validate('callie_form', $form_state['values']['callie_form'], $form, $form_state);
+}
+
+/**
+ * Form submit handler: Submits basic_add_form information.
+ */
+function callie_form_form_submit($form, &$form_state) {
+  $entity = $form_state['values']['callie_form'];
+  $entity->title = $form_state['values']['title'];
+  field_attach_submit('callie_form', $entity, $form, $form_state);
+  $entity = callie_form_save($entity);
+  $form_state['redirect'] = 'admin/structure/callie_form/manage/list';
+}
+
+
+function callie_form_edit_delete($form, &$form_state) {
+  $entity = $form_state['values']['callie_form'];
+  entity_example_basic_delete($entity);
+  drupal_set_message(t('The entity %item_title (ID %id) has been deleted',
+    array('%item_title' => $entity->item_title, '%id' => $entity->cfid))
+  );
+  $form_state['redirect'] = 'callie';
+}
+
+
+
+function callie_form_save(&$entity) {
+  return entity_get_controller('callie_form')->save($entity);
+}
+
+
+
+function callie_form_delete($entity) {
+  entity_get_controller('callie_form')->delete($entity);
+}
+
+
+
+/**
+ * Implements hook_page_build().
+ */
+function callie_page_build(&$page) {
+  $path = drupal_get_path('module', 'callie');
+  drupal_add_js($path . '/js/callie.js');
+
+}
+
+
+
+
+
+/**
+ * CallieFormControllerInterface definition.
+ * @see hook_entity_info_alter()
+ */
+interface CallieFormControllerInterface
+  extends DrupalEntityControllerInterface {
+
+  /**
+   * Create an entity.
+   */
+  public function create();
+
+  /**
+   * Save an entity.
+   *
+   * @param object $entity
+   *   The entity to save.
+   */
+  public function save($entity);
+
+  /**
+   * Delete an entity.
+   *
+   * @param object $entity
+   *   The entity to delete.
+   */
+  public function delete($entity);
+
+}
+
+
+
+/**
+ * CallieFormController extends DrupalDefaultEntityController.
+ */
+class CallieFormController
+  extends DrupalDefaultEntityController
+  implements CallieFormControllerInterface {
+
+  /**
+   * Create and return a new entity_example_basic entity.
+   */
+  public function create() {
+    $entity = new stdClass();
+    $entity->type = 'callie_form';
+    $entity->cfid = 0;
+    $entity->title = '';
+    $entity->mode = 'floating';
+    return $entity;
+  }
+
+  /**
+   * Saves the custom fields using drupal_write_record().
+   */
+  public function save($entity) {
+    // If our entity has no basic_id, then we need to give it a
+    // time of creation.
+   
+    // Invoke hook_entity_presave().
+    module_invoke_all('entity_presave', $entity, 'callie_form');
+    // The 'primary_keys' argument determines whether this will be an insert
+    // or an update. So if the entity already has an ID, we'll specify
+    // basic_id as the key.
+    $primary_keys = $entity->cfid ? 'cfid' : array();
+    // Write out the entity record.
+    drupal_write_record('callie_form', $entity, $primary_keys);
+    // We're going to invoke either hook_entity_update() or
+    // hook_entity_insert(), depending on whether or not this is a
+    // new entity. We'll just store the name of hook_entity_insert()
+    // and change it if we need to.
+    $invocation = 'entity_insert';
+    // Now we need to either insert or update the fields which are
+    // attached to this entity. We use the same primary_keys logic
+    // to determine whether to update or insert, and which hook we
+    // need to invoke.
+    if (empty($primary_keys)) {
+      field_attach_insert('callie_form', $entity);
+    }
+    else {
+      field_attach_update('callie_form', $entity);
+      $invocation = 'entity_update';
+    }
+    // Invoke either hook_entity_update() or hook_entity_insert().
+    module_invoke_all($invocation, $entity, 'callie_form');
+    return $entity;
+  }
+
+  /**
+   * Delete a single entity.
+   *
+   * Really a convenience function for deleteMultiple().
+   */
+  public function delete($entity) {
+    $this->deleteMultiple(array($entity));
+  }
+
+  /**
+   * Delete one or more entity_example_basic entities.
+   *
+   * Deletion is unfortunately not supported in the base
+   * DrupalDefaultEntityController class.
+   *
+   * @param array $entities
+   *   An array of entity IDs or a single numeric ID.
+   */
+  public function deleteMultiple($entities) {
+    $cfids = array();
+    if (!empty($entities)) {
+      $transaction = db_transaction();
+      try {
+        foreach ($entities as $entity) {
+          // Invoke hook_entity_delete().
+          module_invoke_all('entity_delete', $entity, 'callie_form');
+          field_attach_delete('callie_form', $entity);
+          $cfids[] = $entity->cfid;
+        }
+        db_delete('callie_form')
+          ->condition('cfid', $cfids, 'IN')
+          ->execute();
+      }
+      catch (Exception $e) {
+        $transaction->rollback();
+        watchdog_exception('callie', $e);
+        throw $e;
+      }
+    }
+  }
+}
+
+/**
+ * @} End of "defgroup entity_example".
+ */

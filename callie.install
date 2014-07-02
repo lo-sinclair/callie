@@ -1,0 +1,67 @@
+<?php
+
+ /* 
+ * Implements hook_schema()
+ */
+function callie_schema() {
+  $schema['callie_form'] = array(
+    'fields' => array(
+      'cfid' => array(
+        'description' => 'Callie-form ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => 'Callie-form title',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+      'mode' => array(
+        'description' => 'Callie-form type',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'default' => 'floating',
+      ),
+    ),
+    'primary key' => array('cfid'),
+  );
+ 
+  return $schema;
+}
+
+
+/*function callie_field_schema($field) {
+  return array(
+    'columns' => array(
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'data' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'note' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'label' => array('label'),
+      'data' => array('data'),
+      'note' => array('note'),
+    ),
+  );
+}*/
+
+
+function callie_uninstall() {
+  //field_attach_delete_bundle('callie_forms', 'first_example_bundle');
+}
