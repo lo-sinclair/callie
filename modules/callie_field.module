@@ -1,0 +1,189 @@
+<?php
+/**
+* Implements hook_field_info().
+*/
+function callie_field_field_info() {
+    return array(
+        'callie_field' => array(
+            'label' => t('Callie-Form Field'),
+            'description' => t('Callie-Form Description'),
+            'default_widget' => 'callie_field_widget_default',
+            'default_formatter' => 'callie_field_default_formatter',
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_validate().
+*/
+function callie_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors){
+    foreach($items as $delta => $item){
+        // Проверка значений в зависимости от поля type
+        switch($item['type']){
+            case 'email':
+                /*if (!valid_email_address($item['contact'])){
+                    $errors[$field['field_name']][$langcode][$delta][] = array(
+                        'error' => 'contact_invalid',
+                        'message' => t('Invalid E-mail address'),
+                    );
+                }*/
+                break;
+            case 'phone':
+                // TODO мне было лень писать проверку телефона
+                break;
+        }
+    }
+}
+
+
+/*
+* Implements hook_field_is_empty().
+*/
+function callie_field_field_is_empty($item, $field) {
+    return false;
+    //return (empty($item['type']));
+}
+
+
+/**
+* Implements hook_field_widget_info().
+*/
+function callie_field_field_widget_info(){
+    return array(
+        'callie_field_widget_default' => array(
+            'label' => t('Default'),
+            'field types' => array('callie_field'),
+        ),
+        'callie_field_widget_table' => array(
+            'label' => t('Table'),
+            'field types' => array('callie_field'),
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_widget_form().
+*/
+function callie_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  // Настройки экземпляра поля.
+  $settings = $instance['settings'];
+
+  // Просто блок для удобства.
+  // Для стандартной таблицы Друпал он позволит темизировать "субполя" в ряд.
+  $field_block = array();
+
+  // "Субполе" метки.
+  $field_block['label'] = array(
+    '#title' => t('Lable'),
+    '#type' => 'textfield',
+    '#size' => 32,
+    '#default_value' => isset($items[$delta]['label']) ? check_plain($items[$delta]['label']) : '',
+  );
+
+  // "Субполе" данных.
+  $field_block['type'] = array(
+    '#title' => t('Type'),
+    '#type' => 'select',
+    '#default_value' => isset($items[$delta]['type']) ? $items[$delta]['type'] : 'Phone',
+    '#options' => array(
+        'name' => t('Name'),
+        'address' => t('Address'),
+        'phone' => t('Phone'),
+        'email' => t('E-mail'),
+    ),
+  );
+
+  $field_block['required'] = array(
+    '#title' => t('Required'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($items[$delta]['required']) ? $items[$delta]['required'] : 0,
+  );
+
+
+
+  // Варианты виджетов.
+  switch ($instance['widget']['type']) {
+    case 'callie_field_widget_table':
+      
+      
+      break;
+    
+    default:
+      break;
+  }
+
+  // Добавляем блок "субполей" текущего значения к виджету.
+  $element += $field_block;
+
+  // Свои стили для виждета.
+  //$element['#attached']['css'] = array(drupal_get_path('module', 'arbitrary_field') . '/arbitrary_field.css');
+  return $element;
+}
+
+
+/**
+* Implements hook_field_error().
+*/
+function callie_field_field_widget_error($element, $error, $form, &$form_state) {
+    /*switch ($error['error']) {
+        case 'contact_invalid':
+            form_error($element, $error['message']);
+            break;
+    }*/
+}
+
+
+/**
+* Implements hook_field_formatter_info().
+*/
+function callie_field_field_formatter_info(){
+    return array(
+        // отображение в виде простого текста
+        'callie_field_default_formatter' => array(
+            'label' => t('Contact simple text'),
+            'field types' => array('Contact Field'),
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_formatter_view().
+*/
+function callie_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+    $$element = array();
+    switch (
+    $display['type']){
+        // отображение контактов в виде текста
+        case 'callie_field_default_formatter':
+            //drupal_add_css(drupal_get_path('module', 'contact_field') . '/css/contact-field.css');
+            foreach ($items as $delta => $item) {
+                $label = strip_tags($item['label']);
+                switch($item['type']){
+                    case 'address':
+                        $element[$delta]['#markup'] =
+                            '<p class="label-field-address">' . $contact . '</p>';
+                        break;
+                    case 'name':
+                        $element[$delta]['#markup'] =
+                            '<p class="label-field-name">' . $contact . '</p>';
+                        break;
+                    case 'email':
+                        $element[$delta]['#markup'] =
+                            '<p class="label-field-email">' . $contact . '</p>';
+                        break;
+                    case 'phone':
+                        $element[$delta]['#markup'] =
+                            '<p class="label-field-phone">' . $contact . '</p>';
+                        break;
+                }
+            }
+            break;
+    }
+    return $element;
+}
+
+
+

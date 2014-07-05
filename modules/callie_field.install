@@ -1,0 +1,35 @@
+<?php
+
+/**
+* Implements hook_field_schema().
+*/
+function callie_field_field_schema($field){
+    $columns = array(
+        'label' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => FALSE,
+        ),
+        'type' => array(
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => FALSE,
+        ),
+        'required' => array(
+          'description' => '0 = no; 1 = yes',
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => FALSE,
+          'default' => 0,
+        ),
+    );
+    $indexes = array(
+        'label' => array('label'),
+        'type' => array('type'),
+        'required' => array('required'),
+    );
+    return array(
+        'columns' => $columns,
+        'indexes' => $indexes,
+    );
+}

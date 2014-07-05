@@ -1,0 +1,4 @@
+name = Callie Field
+description = Provide Callie-Form Field
+core = 7.x
+;hidden = TRUE
