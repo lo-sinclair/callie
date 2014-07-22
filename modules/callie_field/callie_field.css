@@ -1,0 +1,23 @@
+#field-form-fields-values {
+	width: 640px;
+}
+.callie-field-form-item {
+  display: table-row;
+}
+.callie-field-form-item > div {
+  display: table-cell;
+}
+.callie-field-item-label  {
+  display: inline-block;
+  font-weight: bolder;
+  margin-right: 0.5em;
+  padding-left: 0.5em;
+}
+.callie-field-item-label:after{
+  content: ':';
+}
+.callie-field-item-required {
+  font-style: italic;
+  margin-left: 0.5em;
+}
+

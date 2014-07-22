@@ -2,5 +2,5 @@ name = Callie
 description = callie
 core = 7.x
 version = 7.x-1.x-dev
-;dependencies[] = callie_field
-configure = admin/config/content/callie/settings
+dependencies[] = callie_field
+configure = admin/structure/callie_form/manage/settings

@@ -5,6 +5,11 @@
 */
 function callie_field_field_schema($field){
     $columns = array(
+        'name' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => FALSE,
+        ),
         'label' => array(
             'type' => 'varchar',
             'length' => 255,
@@ -24,6 +29,7 @@ function callie_field_field_schema($field){
         ),
     );
     $indexes = array(
+        'name' => array('label'),
         'label' => array('label'),
         'type' => array('type'),
         'required' => array('required'),

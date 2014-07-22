@@ -1,0 +1,352 @@
+<?php
+/**
+* Implements hook_field_info().
+*/
+function callie_field_field_info() {
+    return array(
+        'callie_field' => array(
+            'label' => t('Callie-Form Field'),
+            'description' => t('Callie-Form Description'),
+            'default_widget' => 'callie_field_widget_default',
+            'default_formatter' => 'callie_field_default_formatter',
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_validate().
+*/
+function callie_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors){
+    foreach($items as $delta => $item){
+        // Проверка значений в зависимости от поля type
+        switch($item['type']){
+            case 'email':
+                /*if (!valid_email_address($item['contact'])){
+                    $errors[$field['field_name']][$langcode][$delta][] = array(
+                        'error' => 'contact_invalid',
+                        'message' => t('Invalid E-mail address'),
+                    );
+                }*/
+                break;
+            case 'phone':
+                // TODO мне было лень писать проверку телефона
+                break;
+        }
+    }
+}
+
+
+/*
+* Implements hook_field_is_empty().
+*/
+function callie_field_field_is_empty($item, $field) {
+    return ( empty($item['type']) || empty($item['label']) );
+}
+
+
+/**
+* Implements hook_field_widget_info().
+*/
+function callie_field_field_widget_info(){
+    return array(
+        'callie_field_widget_default' => array(
+            'label' => t('Default'),
+            'field types' => array(''),
+        ),
+        'callie_field_widget_table' => array(
+            'label' => t('Table'),
+            'field types' => array('callie_field'),
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_widget_form().
+*/
+function callie_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  //$settings = $instance['settings'];
+  $field_block = array();
+
+  $field_block['label'] = array(
+    '#type' => 'textfield',
+    '#size' => 32,
+    '#default_value' => isset($items[$delta]['label']) ? check_plain($items[$delta]['label']) : '',
+  );
+
+  $field_block['type'] = array(
+    '#type' => 'select',
+    '#default_value' => isset($items[$delta]['type']) ? $items[$delta]['type'] : 'Phone',
+    '#options' => array(
+        'cftext' => t('Text'),
+        'cftextarea' => t('Text Area'),
+        'cfphone' => t('Phone'),
+        'cfemail' => t('E-mail'),
+    ),
+  );
+
+  $field_block['required'] = array(
+    '#type' => 'checkbox',
+    '#default_value' => isset($items[$delta]['required']) ? $items[$delta]['required'] : 0,
+  );
+
+
+  switch ($instance['widget']['type']) {
+    case 'callie_field_widget_default':
+        $field_block['#theme'] = array('callie_field_form_item');
+
+        $field_block['label']['#title'] = t('Lable');
+        $field_block['type']['#title'] = t('Address');
+        $field_block['required']['#title'] = t('Required');
+         break;
+
+    case 'callie_field_widget_table':
+      //nothing
+      break;
+    
+    default:
+      break;
+  }
+
+    $element += $field_block;
+    return $element;
+}
+
+
+
+/**
+* Implements hook_field_error().
+*/
+function callie_field_field_widget_error($element, $error, $form, &$form_state) {
+    /*switch ($error['error']) {
+        case 'contact_invalid':
+            form_error($element, $error['message']);
+            break;
+    }*/
+}
+
+
+/**
+* Implements hook_field_formatter_info().
+*/
+function callie_field_field_formatter_info(){
+    return array(
+        'callie_field_default_formatter' => array(
+            'label' => t('Default'),
+            'field types' => array('callie_field'),
+        ),
+        'callie_field_simple_input_formatter' => array(
+            'label' => t('Input'),
+            'field types' => array('callie_field'),
+        ),
+    );
+}
+
+
+/**
+* Implements hook_field_formatter_view().
+*/
+function callie_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+    $element = array();
+    switch (
+    $display['type']){
+        case 'callie_field_default_formatter':
+            //drupal_add_css(drupal_get_path('module', 'contact_field') . '/css/contact-field.css');
+            foreach ($items as $delta => $item) {
+              $element[$delta] = array(
+                '#item' => $item,
+                '#theme' => 'callie_field_default_formatter_item',
+              );
+            }
+            break;
+
+        case 'callie_field_simple_input_formatter':
+          foreach ($items as $delta => $item) {
+              $element[$delta] = array(
+                '#item' => $item,
+                '#theme' => 'callie_field_simple_input',
+                '#name' => check_plain($item['name']),
+                '#label' => check_plain($item['label']),
+                '#type' => check_plain($item['type']),
+                '#required' => check_plain($item['required']),
+              );
+          }
+          break;
+    }
+    return $element;
+}
+
+
+
+/**
+ * Implements hook_theme().
+ */
+function callie_field_theme() {
+  $module_path = drupal_get_path('module', 'callie-field');
+  return array(
+    'callie_field_widget_table' => array(
+      'render element' => 'element',
+    ),
+    'callie_field_form_item' => array(
+      'render element' => 'element',
+    ),
+    'callie_field_default_formatter_item' => array(
+      'render element' => 'element',
+      'template' => 'callie-field-default-item',
+      //'path' => $module_path.'/theme',
+    ),
+    'callie_field_simple_input' => array(
+      'render element' => 'element',
+      'variables' => array(
+        'name' => '',
+        'label' => '',
+        'type' => '',
+        'required' => 0
+      ),
+    ),
+  );
+}
+
+
+
+function theme_callie_field_simple_input($variables) {
+    $output = "";
+    $classes = Array($variables['type']);
+    if($variables['required']) $classes[] = 'requiredField';
+    $classes = implode(' ', $classes);
+
+    if ($variables['type'] != 'cftextarea') {
+      $output = "<input type=\"text\" calass=\"{$classes}\" placeholder=\"{$variables['label']}\" name=\"{$variables['name']}\">";
+    }
+    else {
+      $output = "<textarea rows=\"10\" calass=\"{$classes}\" placeholder=\"{$variables['label']}\" name=\"{$variables['name']}\"></textarea>";
+    }
+    
+    return $output;
+}
+
+
+
+/**
+ * 
+ */
+function template_preprocess_callie_field_default_formatter_item(&$variables) {
+  $element = $variables['element'];
+  $item = $element['#item'];
+  $variables['name'] = check_plain($item['name']);
+  $variables['label'] = check_plain($item['label']);
+  $variables['type'] = check_plain($item['type']);
+  $variables['required'] = check_plain($item['required']);
+}
+
+
+
+
+/**
+ * theme_field_multiple_value_form().
+ */
+function theme_callie_field_widget_table($variables) {
+  $element = $variables['element'];
+  $output = '';
+
+  if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+    $instance_settings = $element['#instance_settings'];
+    $table_id = drupal_html_id($element['#field_name'] . '_values');
+    $order_class = $element['#field_name'] . '-delta-order';
+    $required = !empty($element['#required']) ? theme('form_required_marker', $variables) : '';
+
+    $header = array(
+      '',
+      t('Lable'),
+      t('Type'),
+      t('Required'),
+      t('Order'),
+    );
+
+    $caption = '<label>' . t('!title !required', array('!title' => $element['#title'], '!required' => $required)) . "</label>";
+
+    $rows = array();
+
+    // Sort items according to '_weight' (needed when the form comes back after
+    // preview or failed validation)
+    $items = array();
+    foreach (element_children($element) as $key) {
+      if ($key === 'add_more') {
+        $add_more_button = &$element[$key];
+      }
+      else {
+        $items[] = &$element[$key];
+      }
+    }
+    usort($items, '_field_sort_items_value_helper');
+
+    // Add the items as table rows.
+    foreach ($items as $key => $item) {
+      $item['_weight']['#attributes']['class'] = array($order_class);
+      $delta_element = drupal_render($item['_weight']);
+      $cells = array(
+        array('data' => '', 'class' => array('field-multiple-drag')),
+        drupal_render($item['label']),
+        drupal_render($item['type']),
+        drupal_render($item['required']),
+        array('data' => $delta_element, 'class' => array('delta-order')),
+      );
+      $rows[] = array(
+        'data' => $cells,
+        'class' => array('draggable'),
+      );
+    }
+
+    $output = '<div class="form-item">';
+    $table_arg = array(
+      'header' => $header,
+      'caption' => $caption,
+      'rows' => $rows,
+      'attributes' => array(
+        'id' => $table_id,
+        'class' => array('field-multiple-table'),
+      ),
+    );
+    $output .= theme('table', $table_arg);
+    $output .= $element['#description'] ? '<div class="description">' . $element['#description'] . '</div>' : '';
+    $output .= '<div class="clearfix">' . drupal_render($add_more_button) . '</div>';
+    $output .= '</div>';
+
+    drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
+  }
+  else {
+    foreach (element_children($element) as $key) {
+      $output .= drupal_render($element[$key]);
+    }
+  }
+
+  return $output;
+}
+
+
+function callie_field_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
+    foreach(element_children($form) as $field_name) {
+        $field_info = field_info_field($field_name);
+
+        if ($field_info && 'callie_field' == $field_info['type']) {
+          if ('field_collection_item' == $entity_type) {
+            $bundle_name = $entity->field_name;
+          }
+          elseif ('taxonomy_term' == $entity_type) {
+            $bundle_name = $entity->vocabulary_machine_name;
+          }
+          else {
+            $bundle_name = $entity_type;
+          }
+          $instance = field_info_instance($entity_type, $field_name, $bundle_name);
+
+          if ('callie_field_widget_table' == $instance['widget']['type']) {
+            $lang = $form[$field_name]['#language'];
+            $form[$field_name][$lang]['#theme'] = 'callie_field_widget_table';
+            $form[$field_name][$lang]['#instance_settings'] = $instance['settings'];
+          }
+          $form['#attached']['css'] = array(drupal_get_path('module', 'callie_field') . '/callie_field.css');
+        }
+  }
+}

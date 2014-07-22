@@ -1,15 +1,17 @@
-<div id="callme"><input type="button" id="viewform" class="callme_viewform"></div>
-<div id="cme_form"><a id="cme_cls" href="#">&nbsp;</a><h6>Заказать бесплатный звонок</h6>
-<span>Ваше имя</span>
-<span><input class="cme_txt" type="text" maxlength="150" id="cname"></span>
-<span>Телефон</span>
-<span><input class="cme_txt" type="text" maxlength="150" value="+7-" id="cphone"></span>
-<span>Вопрос или комментарий</span>
-<span><textarea class="cme_txt" id="ccmnt"></textarea></span>
 
-<span>
+<form role="form" id="callie-form-<?php print $cfid;?>" class="callie-form <?php print $mode;?>" method="post" action="">
+    <h3 class="subject"><?php print $title?></h3>
 
-<input class="cme_btn" type="button" value="Перезвоните мне"></span>
-<div id="callme_result"></div>
-</div>
-<div id="cme_back"></div>
+    <?php foreach ($form_fields as $field_name=>$field): ?>
+    	<div class="callie-field field-<?php print $field_name;?>">
+    		<?php print render($field);?>
+    	</div>
+    <?php endforeach; ?>
+
+    <!-- Submit Button -->
+    <div>
+        <button type="submit" class="btn-submit">$submit_btn_text;</button>
+    </div>
+
+    
+</form><!-- /form -->

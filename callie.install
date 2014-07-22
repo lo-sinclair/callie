@@ -25,6 +25,27 @@ function callie_schema() {
         'not null' => TRUE,
         'default' => 'floating',
       ),
+      'provide_block' => array(
+          'description' => 'Provide block',
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => FALSE,
+          'default' => 0,
+      ),
+      'open_btn_text' => array(
+        'description' => 'Open button text',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FAlSE,
+        'default' => NULL,
+      ),
+      'submit_btn_text' => array(
+        'description' => 'Submit button text',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FAlSE,
+        'default' => NULL,
+      ),
     ),
     'primary key' => array('cfid'),
   );
@@ -34,17 +55,18 @@ function callie_schema() {
 
 
 function callie_install() {
-    if( !module_exists('callie_field')) {
+    /*if( !module_exists('callie_field')) {
       module_enable(Array('callie_field'));
-    }
+    }*/
 
-    if( module_exists('callie_field')) {
+  if( module_exists('callie_field')) {
       $fieldname='field_form_fields'; 
       if (!($field = field_info_field($fieldname))) {
         $field = array(
           'field_name'=>$fieldname, 
           'type'=>'callie_field', 
-          'cardinality' => -1,
+          'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+          'weight' => 50,
           'settings' => array(),
           'entity_types' => array('callie_form'),
         );
@@ -66,39 +88,39 @@ function callie_install() {
         field_create_instance($instance);
       }
     }
+    
 
     // Create First Demo Form
     module_load_include('inc', 'callie', 'inc/sample');
 }
 
 function callie_enable() {
-  
+
 }
 
 function callie_disable() {
-  if( module_exists('callie_field')) {
+  /*if( module_exists('callie_field')) {
     module_disable(array('callie_field'), TRUE);
-  }
+  }*/
 }
 
 
 function callie_uninstall() {
-  $fieldname='field_form_fields';
+  
+  field_attach_delete_bundle('callie_form', 'callie_form');
 
+  /*$fieldname='field_form_fields';
   if ($field = field_info_instance('callie_form', $fieldname, 'callie_form')) { 
     field_delete_instance($field);
   }
  
   if ($field = field_info_field($fieldname)) {
     field_delete_field($field);
-  }
-
-
-  field_attach_delete_bundle('callie_form', 'callie_form');
+  }*/
+  
 
   if( module_exists('callie_field')) {
     module_disable(array('callie_field'), TRUE);
   }
   drupal_uninstall_modules(array('callie_field'));
-  
 }

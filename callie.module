@@ -12,42 +12,6 @@
 
 
 
-
-
-
-/*  $fieldname='field_form_fields'; 
-  if (!($field = field_info_field($fieldname))) {
-    $field = array(
-      'field_name'=>$fieldname, 
-      'type'=>'callie_field', 
-      'cardinality' => -1,
-      'settings' => array(),
-      'entity_types' => array('callie_form'),
-    );
- 
-    field_create_field($field);
-  }
-
-  if (!($field = field_info_instance('callie_form', $fieldname, 'callie_form'))) {
-     $instance = array(
-      'field_name'=>$fieldname,
-      'entity_type' => 'callie_form',
-      'label'=>t('First name'),
-      'bundle' => 'callie_form',
-      'type'=>'callie_field',
-      'widget'=>array(
-        'type'=>'callie_field_widget_table'
-      ),
-    );
-    field_create_instance($instance);
-  }*/
-
-
-
-
-
-
-
 /**
  * Implements hook_entity_info().
  *
@@ -64,9 +28,6 @@ function callie_entity_info() {
     'uri callback' => 'callie_form_uri',
     'fieldable' => TRUE,
 
-    // entity_keys tells the controller what database fields are used for key
-    // functions. It is not required if we don't have bundles or revisions.
-    // Here we do not support a revision, so that entity key is omitted.
     'entity keys' => array(
       'id' => 'cfid',
     ),
@@ -75,15 +36,12 @@ function callie_entity_info() {
     'bundles' => array(
       'callie_form' => array(
         'label' => 'Callie bundle',
-        'admin' => array(
+        /*'admin' => array(
           'path' => 'admin/structure/callie_form/manage',
           'access arguments' => array('administer callie_form entities'),
-        ),
+        ),*/
       ),
     ),
-    // View modes allow entities to be displayed differently based on context.
-    // As a demonstration we'll support "Tweaky", but we could have and support
-    // multiple display modes.
     'view modes' => array(
       'tweaky' => array(
         'label' => t('Tweaky'),
@@ -115,6 +73,20 @@ function callie_form_load_multiple($cfids = FALSE, $conditions = array(), $reset
   return entity_load('callie_form', $cfids, $conditions, $reset);
 }
 
+/**
+ * Loads multiple callie_form entities with basic fields.
+ */
+function callie_form_load_basic($cfids = FALSE) {
+  $query = db_select('callie_form', 'cf')
+    ->fields('cf');
+   if ($cfids)
+      $query->condition('cf.cfid', $cfids, 'IN');
+  $result = $query->execute()
+  ->fetchAllAssoc('cfid');
+  if (empty($result))
+    return false;
+  return $result;
+}
 
 
 /**
@@ -142,7 +114,7 @@ function callie_menu() {
   // interface and has to be the same as what was defined
   // in basic_entity_info() above.
   $items['admin/structure/callie_form/manage'] = array(
-    'title' => 'Administer callie_form entity type',
+    'title' => 'Callie',
     'page callback' => 'callie_form_list_entities',
     'access arguments' => array('administer callie_form entities'),
   );
@@ -157,6 +129,17 @@ function callie_menu() {
   $items['admin/structure/callie_form/manage/list'] = array(
     'title' => 'List',
     'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0, 
+  );
+
+  $items['admin/structure/callie_form/manage/settings'] = array(
+    'title' => 'Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('callie_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'tab parent' => 'admin/structure/callie_form/manage',
+    'weight' => 1, 
   );
 
   $items['admin/callie_form/%callie_form'] = array(
@@ -197,27 +180,35 @@ function callie_menu() {
     'access arguments' => array('create callie_form entities'),
   );
 
+  $items['ajax-mail'] = array(
+      'access callback' => TRUE,
+      'page callback' => 'callie_ajax_mail',
+      'type' => MENU_CALLBACK
+  );
+
+   $items['form-get'] = array(
+      'page callback' => 'callie_ajax_get',
+      'type' => MENU_CALLBACK,
+      'access callback' => TRUE,
+      
+  );
   return $items;
 }
 
 
-
-/**
- * Basic information for the page.
- */
-function callie_info_page() {
-  $content['preface'] = array(
-    '#type' => 'item',
-    '#markup' => t('The callie provides a callie form.'),
+function callie_settings_form($form, &$form_state) {
+  $form = array();
+ 
+  $form['callie_sent_timeout'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Sent timeout'),
+    '#size' => 10,
+    '#default_value' => variable_get('callie_sent_timeout', 1200), 
+    '#element_validate' => array('element_validate_integer_positive'), 
+    '#required' => TRUE,
   );
-  if (user_access('administer callie_form entities')) {
-    $content['preface']['#markup'] = t('You can administer these and add fields and change the view !link.',
-      array('!link' => l(t('here'), 'admin/structure/callie_form/manage'))
-    );
-  }
-  $content['table'] = callie_form_list_entities();
 
-  return $content;
+  return system_settings_form($form);
 }
 
 
@@ -245,10 +236,119 @@ function callie_permission() {
 
 
 
+/**
+ * Basic information for the page.
+ */
+function callie_info_page() {
+  $content['preface'] = array(
+    '#type' => 'item',
+    '#markup' => t('The callie provides a callie form.'),
+  );
+  if (user_access('administer callie_form entities')) {
+    $content['preface']['#markup'] = t('You can administer these and add fields and change the view !link.',
+      array('!link' => l(t('here'), 'admin/structure/callie_form/manage'))
+    );
+  }
+  $content['table'] = callie_form_list_entities();
+
+  return $content;
+}
+
+
+
+/**
+ * Implements hook_theme().
+ */
+function callie_theme() {
+  $module_path = drupal_get_path('module', 'callie');
+
+  return array(
+    'callie_form' => array(
+      'variables' => array(
+                'cfid' => NULL,
+                'fields' => Array(),
+                'btn_text' => NULL,
+            ),
+      'template' => 'callie-form',
+      'pattern' => 'callie-form__',
+      'path' => $module_path.'/theme',
+    ),
+  );
+}
+
+
+function callie_ajax_get($cfid = 1) {
+  $entity = array_shift(entity_load('callie_form', array($cfid)));
+  $vars = Array(
+    'cfid' => $entity->cfid,
+    'title' => $entity->title,
+    'mode' => $entity->mode,
+    'submit_btn_text' => $entity->submit_btn_text,
+    'form_fields' => Array()
+    );
+
+  $fields = field_get_items('callie_form', $entity, 'field_form_fields');
+  foreach ($fields  as $field) {
+     $vars['form_fields'][($field['name'])] = field_view_value('callie_form', $entity, 'field_form_fields', $field, array('type' => 'callie_field_simple_input_formatter'));
+  }
+
+  $output = theme('callie_form__'.$cfid, $vars);
+
+  return drupal_json_output($output);
+}
+
+
+
+function callie_help_form($form, &$form_state, $entity) {
+  switch ($entity->mode) {
+    case 'floating':
+      $title = t('Button code:');
+      $description = t('You can insert this HTML code into any place template or page content');
+      $html = "<a class=\"callie-form-open\" form-id=\"callie-form-" . $entity->cfid ."\" href=\"#\">" . $entity->open_btn_text . "</a>";
+      $rows = 1;
+      break;
+
+    case 'inbuilt':
+      $title = t('Container Code:');
+      $description = t('You can insert this HTML code into any place template or page content, there appeared to this form');
+      $html = "<div class=\"callie-form\" id=\"callie-form-" . $entity->cfid. "\"></div>";
+      $rows = 1;
+      break;
+    
+    default:
+      $title = "";
+      $description = "";
+      $html = "";
+      $rows = 3;
+      break;
+  }
+
+ $form['title'] = array(
+        '#type' => 'textarea',
+        '#rows' => $rows,
+        '#cols' => 8,
+        '#resizable' => FALSE,
+        '#title' => $title,
+        '#disabled' => TRUE,
+        '#default_value' => $html,
+        '#description' => $description,
+      );
+
+  return $form;
+}
+
+
 function callie_form_list_entities() {
+  $path = drupal_get_path('module', 'callie');
+  drupal_add_css($path . '/css/admin.css');
+  drupal_add_js($path . '/js/admin.js');
+  
   $content = array();
   // Load all of our entities.
   $entities = callie_form_load_multiple();
+
+  
+
   if (!empty($entities)) {
     $destination = drupal_get_destination();
     
@@ -267,11 +367,22 @@ function callie_form_list_entities() {
         'query' => $destination,
       );
 
+$outputout = "<div class='callie-help'>";  
+$outputout .= "<div class='callie-help-open'>"
+       . l($entity->title, '') 
+       ."</div>";
+$outputout .= "<div class='callie-help-content'>"
+       . render(drupal_get_form('callie_help_form', $entity)) 
+       ."</div>";
+$outputout .= "</div>"; 
+
+$title = l($entity->title, '');
 
       $rows[] = array(
         'data' => array(
           'id' => $entity->cfid,
-          'title' => l($entity->title, 'admin/callie_form/' . $entity->cfid),
+          //'title' => l($entity->title, 'admin/callie_form/' . $entity->cfid),
+          'title' => $outputout,
           'mode' => $entity->mode,
           'operations' => array('data' => array(
             '#theme' => 'links__node_operations',
@@ -281,10 +392,16 @@ function callie_form_list_entities() {
         ),
       );
     }
+    $header = array(
+      array('data' => t('ID')),
+      array('data' => t('Title'), 'width' => '500px'),
+      array('data' => t('Type')),
+      array('data' => t('Operations')),
+    );
     $content['entity_table'] = array(
       '#theme' => 'table',
       '#rows' => $rows,
-      '#header' => array(t('ID'), t('Title'), t('Type'), t('Operations')),
+      '#header' => $header,
     );
   }
   else {
@@ -387,11 +504,37 @@ function callie_form_form($form, &$form_state, $entity) {
     '#required' => TRUE,
     '#default_value' => $entity->title,
   );
-  $form['mode'] = array(
-    '#type' => 'textfield',
+  $form['set'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Mode of dispay'),
+    '#weight' => 10,
+  );
+  $form['set']['mode'] = array(
+    '#type' => 'select',
     '#title' => t('Mode'),
     '#required' => TRUE,
     '#default_value' => $entity->mode,
+    '#options' => array(
+      'floating' => 'floating',
+      'inbuilt' => 'inbuilt',
+    ),
+  );
+  $form['set']['open_btn_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Open button text'),
+    '#default_value' => 'Call me',
+    '#size' => 14,
+    '#states' => array(
+      'visible' => array(
+        'select[name="mode"]' => array('value' => 'floating')
+      )
+    ),
+  );
+  $form['submit_btn_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Submit button text'),
+    '#default_value' => $entity->submit_btn_text,
+    '#size' => 20,
   );
   $form['callie_form'] = array(
     '#type' => 'value',
@@ -443,6 +586,7 @@ function callie_form_form_submit($form, &$form_state) {
   $entity = $form_state['values']['callie_form'];
   $entity->title = $form_state['values']['title'];
   $entity->mode = $form_state['values']['mode'];
+  $entity->submit_btn_text = $form_state['values']['submit_btn_text'];
   field_attach_submit('callie_form', $entity, $form, $form_state);
   $entity = callie_form_save($entity);
   $form_state['redirect'] = 'admin/structure/callie_form/manage/list';
@@ -534,7 +678,10 @@ class CallieFormController
   public function create() {
     $entity = new stdClass();
     $entity->type = 'callie_form';
-    $entity->pes = 'ju';
+    $entity->container = NULL;
+    $entity->button = NULL;
+    $entity->submit_btn_text = '';
+    $entity->open_btn_text = '';
     $entity->cfid = 0;
     $entity->title = '';
     $entity->mode = 'floating';
@@ -630,9 +777,43 @@ class CallieFormController
  */
 function callie_page_build(&$page) {
   $path = drupal_get_path('module', 'callie');
-  drupal_add_js($path . '/js/callie.js');
-
+  $forms = callie_form_load_basic();
+  foreach($forms as $id => $form){
+    $forms['callie-form-'.$id] = $form;
+    unset($forms[$id]);
+  }
+  if ( $forms && (arg(0) != "admin")) {
+    drupal_add_js(Array('callie_forms'=>$forms), 'setting');
+    drupal_add_js($path . '/js/callie.js');
+  }
 }
 
 
+/**
+ * Implements hook_token_info().
+ */
+function callie_token_info() {
+  // Описываем новый тип токена.
+  $type = array(
+    'name' => t('Products'), // Человеко-понятное название токена.
+    'description' => t('Tokens related to individual products.'), // Описание токена.
+    'needs-data' => 'callie-form', // Тип данных.
+  );
+ 
+  $callie_form = array();
+ 
+  $callie_form['id'] = array(
+    'name' => t('Product ID'),
+    'description' => t('The unique ID of the callie_form.'),
+  );
+  $callie_form['title'] = array(
+    'name' => t('Title'),
+    'description' => t('The title of the callie_form.'),
+  );
 
+ 
+  return array(
+    'types' => array('callie-form' => $type),
+    'tokens' => array('callie-form' => $callie_form),
+  );
+}
